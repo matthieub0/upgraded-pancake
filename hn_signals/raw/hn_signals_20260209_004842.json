@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "collected_at": "2026-02-09T00:48:42.745501+00:00",
+    "lookback_days": 7,
+    "cutoff_date": "2026-02-02T00:48:42+00:00",
+    "total_signals": 0,
+    "stats": {
+      "api_errors": 2,
+      "show_hn_collected": 0,
+      "threads_collected": 0
+    }
+  },
+  "signals": []
+}

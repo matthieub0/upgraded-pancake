@@ -1,0 +1,33 @@
+name: HN Signal Collection
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'  # Every Monday 7am UTC
+  workflow_dispatch: {}    # Manual trigger button
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Collect HN signals (last 7 days)
+        run: python hn_collector.py 7 hn_signals
+
+      - name: Commit results
+        run: |
+          git config user.name "HN Signal Bot"
+          git config user.email "bot@noreply.github.com"
+          git add hn_signals/
+          git diff --cached --quiet || git commit -m "Weekly HN signals $(date +%Y-%m-%d)"
+          git push
