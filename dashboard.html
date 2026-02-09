@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HN Signal Dashboard — 2026-02-09</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0d1117; color:#c9d1d9; display:flex; min-height:100vh; }
+  a { color:#58a6ff; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+
+  /* Sidebar */
+  .sidebar { width:260px; background:#161b22; border-right:1px solid #30363d; padding:16px; overflow-y:auto; flex-shrink:0; position:sticky; top:0; height:100vh; }
+  .sidebar h1 { font-size:15px; color:#f0f6fc; margin-bottom:4px; }
+  .sidebar .period { font-size:12px; color:#8b949e; margin-bottom:16px; }
+  .sidebar h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#8b949e; margin:16px 0 8px; }
+  .filter-btn { display:flex; align-items:center; justify-content:space-between; width:100%; padding:6px 10px; margin-bottom:4px; border:none; border-radius:6px; background:transparent; color:#c9d1d9; font-size:13px; cursor:pointer; text-align:left; }
+  .filter-btn:hover { background:#21262d; }
+  .filter-btn.active { background:#1f6feb33; color:#58a6ff; }
+  .filter-btn .count { font-size:11px; background:#30363d; padding:1px 6px; border-radius:10px; color:#8b949e; }
+  .filter-btn.active .count { background:#1f6feb55; color:#58a6ff; }
+  .strength-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; flex-shrink:0; }
+  .dot-strong { background:#f85149; }
+  .dot-moderate { background:#d29922; }
+  .dot-low { background:#388bfd; }
+  .dot-none { background:#484f58; }
+  .sidebar .stats { margin-top:20px; padding-top:12px; border-top:1px solid #30363d; font-size:12px; color:#8b949e; line-height:1.8; }
+  .sidebar .stats span { color:#c9d1d9; }
+
+  /* Main */
+  .main { flex:1; padding:24px; overflow-y:auto; }
+  .main-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .main-header h2 { font-size:18px; color:#f0f6fc; }
+  .main-header .result-count { font-size:13px; color:#8b949e; }
+  .search-box { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:#c9d1d9; font-size:13px; width:240px; }
+  .search-box:focus { outline:none; border-color:#1f6feb; }
+
+  /* Domain thesis banner */
+  .domain-thesis { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px 16px; margin-bottom:20px; font-size:13px; line-height:1.6; color:#8b949e; }
+  .domain-thesis strong { color:#c9d1d9; }
+
+  /* Cards */
+  .cards { display:grid; gap:12px; }
+  .card { background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px 16px; transition:border-color .15s; }
+  .card:hover { border-color:#484f58; }
+  .card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .card-title { font-size:14px; font-weight:600; color:#f0f6fc; line-height:1.4; }
+  .card-badges { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+  .badge { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:500; white-space:nowrap; }
+  .badge-strong { background:#f8514922; color:#f85149; border:1px solid #f8514944; }
+  .badge-moderate { background:#d2992222; color:#d29922; border:1px solid #d2992244; }
+  .badge-low { background:#388bfd22; color:#388bfd; border:1px solid #388bfd44; }
+  .badge-eu { background:#3fb95022; color:#3fb950; border:1px solid #3fb95044; }
+  .badge-builder { background:#a371f722; color:#a371f7; border:1px solid #a371f744; }
+  .badge-hiring { background:#f7914122; color:#f79141; border:1px solid #f7914144; }
+  .badge-type { background:#30363d; color:#8b949e; border:1px solid #484f58; }
+  .card-problem { font-size:13px; color:#8b949e; margin-bottom:10px; line-height:1.5; }
+  .card-links { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; }
+  .card-links a { display:inline-flex; align-items:center; gap:4px; }
+  .card-links .icon { font-size:14px; }
+  .card-domain { font-size:11px; color:#484f58; margin-top:8px; }
+
+  /* Toggle row */
+  .toggles { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .toggle-chip { font-size:12px; padding:4px 12px; border-radius:16px; border:1px solid #30363d; background:transparent; color:#8b949e; cursor:pointer; }
+  .toggle-chip:hover { border-color:#484f58; color:#c9d1d9; }
+  .toggle-chip.on { background:#1f6feb33; border-color:#1f6feb; color:#58a6ff; }
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar"></div>
+<div class="main" id="main"></div>
+
+<script>
+const DATA = {"meta": {"generated_at": "2026-02-09T00:00:00Z", "lookback_days": 30, "period": "2026-01-10 to 2026-02-09", "total_signals": 62, "show_hn": 49, "threads": 6, "hiring_signals": 7, "source": "WebSearch aggregation + bestofshowhn.com + HN Who Is Hiring"}, "signals": [{"id": "hn_46912565", "type": "show_hn", "title": "2026 US take-home pay calculator (updated tax brackets)", "hn_url": "https://news.ycombinator.com/item?id=46912565", "author_intent": "builder", "builder_present": true, "problem_domain": "fintech_tools", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46896915", "type": "show_hn", "title": "I built an AI tool to help technical founders improve their pitch", "hn_url": "https://news.ycombinator.com/item?id=46896915", "author_intent": "builder", "builder_present": true, "problem_domain": "founder_tools", "inferred_problem": "Technical founders struggle to pitch clearly", "has_demo": true, "has_monetisation_language": true, "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46899789", "type": "show_hn", "title": "TalentLyt – A Forensic AI Built by a Staff Engineer to Catch AI-Proxies", "hn_url": "https://news.ycombinator.com/item?id=46899789", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_integrity", "inferred_problem": "Candidates using AI overlays to cheat technical interviews", "has_monetisation_language": true, "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_46851589", "type": "show_hn", "title": "Is AI 'good' yet? – tracking developer sentiment on AI coding", "hn_url": "https://news.ycombinator.com/item?id=46851589", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_integrity", "inferred_problem": "No clear signal on whether AI coding tools actually help", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46900632", "type": "show_hn", "title": "FizzBuzz Enterprise Edition 2026 – AI-powered divisibility detection", "hn_url": "https://news.ycombinator.com/item?id=46900632", "author_intent": "discussion", "builder_present": false, "problem_domain": "satire", "formation_relevance": "none", "eu_relevant": false}, {"id": "hn_craftplan", "type": "show_hn", "title": "Craftplan – production management tool for a bakery", "hn_url": "https://news.ycombinator.com/item?id=46847690", "points": 552, "num_comments": 163, "created_at": "2026-02-01", "author_intent": "builder", "builder_present": true, "problem_domain": "vertical_saas", "inferred_problem": "Small-batch producers lack affordable production management tools", "has_monetisation_language": true, "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_nanoclaw", "type": "show_hn", "title": "NanoClaw – Clawdbot in 500 lines of TS with Apple container isolation", "hn_url": "https://news.ycombinator.com/item?id=46850205", "created_at": "2026-02", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_agent_infra", "inferred_problem": "AI agents need lightweight sandboxing for safe code execution", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_wikipedia_doom", "type": "show_hn", "title": "Wikipedia as a doomscrollable social media feed", "hn_url": "https://news.ycombinator.com/item?id=46850803", "created_at": "2026-02", "author_intent": "builder", "builder_present": true, "problem_domain": "consumer", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_ghidra_mcp", "type": "show_hn", "title": "Ghidra MCP Server – 110 tools for AI-assisted reverse engineering", "hn_url": "https://news.ycombinator.com/item?id=46882389", "created_at": "2026-02", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "security_tools", "inferred_problem": "Reverse engineering needs AI augmentation via MCP protocol", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_localgpt", "type": "show_hn", "title": "LocalGPT – A local-first AI assistant in Rust with persistent memory", "hn_url": "https://news.ycombinator.com/item?id=46930391", "created_at": "2026-02", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_ai", "inferred_problem": "Cloud AI assistants compromise privacy; local alternatives lack persistence", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_46373063", "type": "show_hn", "title": "A Multi-App Platform Built by One Person Using AI as the Developer", "hn_url": "https://news.ycombinator.com/item?id=46373063", "created_at": "2025-12-24", "author_intent": "builder", "builder_present": true, "problem_domain": "vibe_coding", "inferred_problem": "Demonstrating solo founder + AI = full product studio", "has_monetisation_language": true, "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_openworkers", "type": "show_hn", "title": "OpenWorkers – Self-hosted Cloudflare workers in Rust", "hn_url": "https://news.ycombinator.com/item?id=46454693", "points": 500, "num_comments": 158, "created_at": "2026-01-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "self_hosted_infra", "inferred_problem": "Vendor lock-in for edge compute; need self-hosted Cloudflare workers alternative", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_prismtools", "type": "show_hn", "title": "Prism.Tools – Free and privacy-focused developer utilities", "hn_url": "https://news.ycombinator.com/item?id=46511469", "points": 345, "num_comments": 97, "created_at": "2026-01-06", "author_intent": "builder", "builder_present": true, "problem_domain": "privacy_dev_tools", "inferred_problem": "Dev tools phone home / collect data; devs want privacy-first alternatives", "formation_relevance": "moderate", "eu_relevant": true}, {"id": "hn_bustermq", "type": "show_hn", "title": "BusterMQ – Thread-per-core NATS server in Zig with io_uring", "hn_url": "https://news.ycombinator.com/item?id=46449812", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "systems_infra", "inferred_problem": "Current message queues don't exploit modern kernel primitives (io_uring)", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_tasker", "type": "show_hn", "title": "Tasker – Open-source desktop agent for browser and OS automation", "hn_url": "https://news.ycombinator.com/item?id=46501137", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "ai_agent_infra", "inferred_problem": "Desktop automation needs AI-native orchestration", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_46435308", "type": "show_hn", "title": "22 GB of Hacker News in SQLite", "hn_url": "https://news.ycombinator.com/item?id=46435308", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "data_infra", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_tailsnitch", "type": "show_hn", "title": "Tailsnitch – A security auditor for Tailscale", "hn_url": "https://news.ycombinator.com/item?id=46501137", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "security_tools", "inferred_problem": "Tailscale deployments need security auditing", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_audio_hardware", "type": "show_hn", "title": "I used AI to recreate a $4000 piece of audio hardware as a plugin", "hn_url": "https://news.ycombinator.com/item?id=46471648", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_hardware_replication", "inferred_problem": "Expensive analog audio hardware can be faithfully replicated in software using AI", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_adsbee", "type": "show_hn", "title": "ADSBee – open source dual band embedded ADS-B receiver", "hn_url": "https://news.ycombinator.com/item?id=46459195", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "hardware_oss", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46481023", "type": "show_hn", "title": "Vibe to Prod – Production-ready template for AI-assisted development", "hn_url": "https://news.ycombinator.com/item?id=46481023", "created_at": "2026-01-03", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "vibe_coding", "inferred_problem": "AI-generated code takes weeks to ship to production; need bridge templates", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_46676815", "type": "show_hn", "title": "Visual Database Schema Designer (Angular 21 and .NET 10)", "hn_url": "https://news.ycombinator.com/item?id=46676815", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "devex", "inferred_problem": "DB design tools are either heavy enterprise or simplistic drawing tools", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46699734", "type": "show_hn", "title": "On-Device (Offline) AI SDK for iOS (LLMs, Vision and Stable Diffusion)", "hn_url": "https://news.ycombinator.com/item?id=46699734", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_ai", "inferred_problem": "iOS devs need easy on-device AI without cloud dependency", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_46872908", "type": "show_hn", "title": "Lap – A local-first AI photo manager built with Tauri and Vue 3", "hn_url": "https://news.ycombinator.com/item?id=46872908", "created_at": "2026-02-04", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_ai", "inferred_problem": "Photo management that uses AI search while keeping everything offline and private", "formation_relevance": "moderate", "eu_relevant": true}, {"id": "hn_46873236", "type": "show_hn", "title": "TrueLedger – a local-first personal finance app with no cloud back end", "hn_url": "https://news.ycombinator.com/item?id=46873236", "created_at": "2026-02-04", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_fintech", "inferred_problem": "Personal finance apps require cloud = privacy risk for financial data", "formation_relevance": "moderate", "eu_relevant": true}, {"id": "hn_46707361", "type": "show_hn", "title": "Loomind – Local-first workspace with RAG and eternal memory", "hn_url": "https://news.ycombinator.com/item?id=46707361", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_ai", "inferred_problem": "People don't want to send personal journals and business docs to public cloud for AI", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_46721775", "type": "show_hn", "title": "Desktop-2FA – offline open-source TOTP authenticator for desktop", "hn_url": "https://news.ycombinator.com/item?id=46721775", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "privacy_security", "inferred_problem": "2FA authenticators shouldn't require phones or cloud sync", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46933232", "type": "show_hn", "title": "RexIDE – A local-first desktop IDE for running AI agents across multiple repos", "hn_url": "https://news.ycombinator.com/item?id=46933232", "created_at": "2026-02-09", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_agent_infra", "inferred_problem": "AI agents need unified IDE that handles multi-repo context without tool switching", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_46517757", "type": "show_hn", "title": "A simple, local-only CRM desktop app built with Python/Tk and SQLite", "hn_url": "https://news.ycombinator.com/item?id=46517757", "created_at": "2026-01-06", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_business", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46533011", "type": "show_hn", "title": "An offline-first, with state-in-URL, workout planning and tracking app", "hn_url": "https://news.ycombinator.com/item?id=46533011", "created_at": "2026-01-07", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_consumer", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46478061", "type": "show_hn", "title": "Offline tiles and routing and geocoding in one Docker Compose stack", "hn_url": "https://news.ycombinator.com/item?id=46478061", "created_at": "2026-01-04", "author_intent": "builder", "builder_present": true, "problem_domain": "self_hosted_infra", "inferred_problem": "On-prem/edge devices need offline maps without commercial APIs", "formation_relevance": "moderate", "eu_relevant": true}, {"id": "hn_46471648", "type": "show_hn", "title": "I used AI to recreate a $4000 piece of audio hardware as a plugin", "hn_url": "https://news.ycombinator.com/item?id=46471648", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_creative_tools", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46488654", "type": "show_hn", "title": "An interactive guide to how browsers work", "hn_url": "https://news.ycombinator.com/item?id=46488654", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "education", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46540037", "type": "show_hn", "title": "MyMoodWrapped – Track your mood in 2026", "hn_url": "https://news.ycombinator.com/item?id=46540037", "created_at": "2026-01-08", "author_intent": "builder", "builder_present": true, "problem_domain": "consumer_wellness", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46453467", "type": "show_hn", "title": "Gradient – A 1-click mood journal for 2026, running locally", "hn_url": "https://news.ycombinator.com/item?id=46453467", "created_at": "2026-01-01", "author_intent": "builder", "builder_present": true, "problem_domain": "local_first_consumer", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46455648", "type": "show_hn", "title": "Toy Browser Update (January 2026)", "hn_url": "https://news.ycombinator.com/item?id=46455648", "created_at": "2026-01-01", "author_intent": "builder", "builder_present": true, "problem_domain": "systems_infra", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_46473270", "type": "show_hn", "title": "Underserved Directory Niches (Hand-picked for 2026)", "hn_url": "https://news.ycombinator.com/item?id=46473270", "created_at": "2026-01-03", "author_intent": "builder", "builder_present": true, "problem_domain": "market_intelligence", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_hevec", "type": "show_hn", "title": "HEVEC – Homomorphically Encrypted Vector Database (1M vectors in 187ms)", "hn_url": "https://news.ycombinator.com/item?id=46873962", "created_at": "2026-02", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "post_quantum_crypto", "inferred_problem": "Vector search on encrypted data without decryption; privacy-preserving AI inference", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_finlang", "type": "show_hn", "title": "FinLang – Deterministic rules engine for finance (EU AI Act compliance)", "hn_url": "https://news.ycombinator.com/item?id=45948270", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "eu_compliance", "inferred_problem": "EU AI Act 2026 deadline makes black-box ML a compliance risk in finance", "has_monetisation_language": true, "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_euconform", "type": "show_hn", "title": "EuConform – Offline-first EU AI Act compliance tool", "hn_url": "https://news.ycombinator.com/item?id=46557823", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "eu_compliance", "inferred_problem": "EU companies need practical compliance tooling for the AI Act", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_nerv", "type": "show_hn", "title": "NERV – Private, PQ-secure blockchain", "hn_url": "https://news.ycombinator.com/item?id=46798043", "created_at": "2026", "author_intent": "builder", "builder_present": true, "problem_domain": "post_quantum_crypto", "inferred_problem": "Existing blockchains are vulnerable to quantum computing attacks", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_architect", "type": "show_hn", "title": "Architect – Terminal for running multiple AI coding agents (Zig, Ghostty)", "hn_url": "https://news.ycombinator.com/item?id=46703935", "created_at": "2026", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "ai_agent_infra", "inferred_problem": "Developers need orchestration layer to run multiple AI agents concurrently", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_specx", "type": "show_hn", "title": "SpecX – Workflow automation for AI agents", "hn_url": "https://news.ycombinator.com/item?id=46068181", "created_at": "2026", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_agent_infra", "inferred_problem": "AI agents need structured workflow definitions for complex multi-step tasks", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_agent_worktree", "type": "show_hn", "title": "Agent-worktree – Git worktree workflow tool for AI agents", "hn_url": "https://news.ycombinator.com/item?id=46901380", "created_at": "2026", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "ai_agent_infra", "inferred_problem": "AI agents need isolated git worktrees to safely make concurrent code changes", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_openwork", "type": "show_hn", "title": "OpenWork – Open-source alternative to Claude Cowork", "hn_url": "https://news.ycombinator.com/item?id=46612494", "created_at": "2026", "author_intent": "builder", "builder_present": true, "has_github": true, "problem_domain": "ai_agent_infra", "inferred_problem": "Desktop AI agent tools should be open source and self-hostable", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_seven_up", "type": "show_hn", "title": "Seven up – vagrant up made of sprite (Fly.io) for safe vibe-coding", "hn_url": "https://news.ycombinator.com/item?id=46913404", "created_at": "2026", "author_intent": "builder", "builder_present": true, "problem_domain": "vibe_coding", "inferred_problem": "AI-generated code needs sandboxed environments before touching production", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_mantic", "type": "show_hn", "title": "Mantic.sh – Structural code search engine for AI agents", "hn_url": "https://news.ycombinator.com/item?id=46512182", "created_at": "2026-01", "author_intent": "builder", "builder_present": true, "problem_domain": "ai_agent_infra", "inferred_problem": "AI agents need structural code understanding, not just text search", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46917293", "type": "ask_hn", "title": "Ask HN: Best option for hosted agent in 2026?", "hn_url": "https://news.ycombinator.com/item?id=46917293", "created_at": "2026-02", "author_intent": "discussion", "problem_domain": "ai_agent_infra", "inferred_problem": "Startups want hosted AI agents with custom skills; build vs buy decision", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46482268", "type": "ask_hn", "title": "Ask HN: What are you working on? (Jan 2026)", "hn_url": "https://news.ycombinator.com/item?id=46482268", "created_at": "2026-01", "author_intent": "discussion", "problem_domain": "community_sentiment", "inferred_problem": "Strong anti-bloat, pro-simplicity ethos: 'a notepad should never touch the network'", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_46446554", "type": "ask_hn", "title": "Ask HN: What are your plans for 2026?", "hn_url": "https://news.ycombinator.com/item?id=46446554", "created_at": "2026-01", "author_intent": "discussion", "problem_domain": "community_sentiment", "formation_relevance": "low", "eu_relevant": false}, {"id": "hn_hire_strata", "type": "hiring", "title": "Strata Core – Sovereign OS for supply chain compliance (multi-agentic, Halal/ESG)", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "eu_compliance", "inferred_problem": "Manual audits for supply chain compliance (Halal, ESG) need AI automation", "tech_stack": "Python, LangGraph, Vector DBs, Azure OpenAI", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_hire_xfigura", "type": "hiring", "title": "xFigura – AI-native creative canvas for architects ('Figma for the built world')", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "vertical_saas", "inferred_problem": "Architects lack AI-native design tools; Figma doesn't serve architecture", "formation_relevance": "strong", "eu_relevant": false}, {"id": "hn_hire_shorebird", "type": "hiring", "title": "Shorebird – Flutter SaaS by Flutter founder, profitability mid-2026", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "dev_tools", "inferred_problem": "Flutter ecosystem needs enterprise-grade tooling and deployment", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_hire_enigmofi", "type": "hiring", "title": "EnigmoFi – Crypto financial infrastructure ($192k base DevOps)", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "crypto_infra", "inferred_problem": "Crypto needs secure, scalable financial infrastructure", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_hire_curiosity", "type": "hiring", "title": "Curiosity (Munich) – AI-enabled graph database for industrial companies", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "industrial_ai", "inferred_problem": "Industrial companies have complex, fragmented data that needs AI-powered unification", "formation_relevance": "strong", "eu_relevant": true}, {"id": "hn_hire_superego", "type": "hiring", "title": "SuperEgo Health – Healthcare product studio (AI + wellness)", "hn_url": "https://news.ycombinator.com/item?id=46857488", "created_at": "2026-02", "problem_domain": "healthtech", "formation_relevance": "moderate", "eu_relevant": false}, {"id": "hn_hire_greentech", "type": "hiring", "title": "GreenTech forestry startup (Boston) – LiDAR, Vision, SLAM, Rust", "hn_url": "https://news.ycombinator.com/item?id=46466074", "created_at": "2026-01", "problem_domain": "climate_tech", "inferred_problem": "Forestry management needs autonomous robotics with LiDAR and computer vision", "formation_relevance": "moderate", "eu_relevant": false}], "problem_domains": {"local_first_ai": {"signal_count": 13, "formation_strength": "very_strong", "eu_relevant": true, "thesis": "Mass rejection of cloud dependency for personal/sensitive data. Privacy regulation (GDPR, EU AI Act) is an accelerant. Startup formation likely in: local-first dev tools, offline AI, privacy-preserving analytics."}, "ai_agent_infra": {"signal_count": 10, "formation_strength": "very_strong", "eu_relevant": false, "thesis": "The picks-and-shovels layer for AI coding agents is forming NOW. Gap between 'AI writes code' and 'code ships safely' is a billion-dollar problem. Multiple builders attacking from different angles: orchestration, sandboxing, git workflows, IDEs."}, "eu_compliance": {"signal_count": 5, "formation_strength": "strong", "eu_relevant": true, "thesis": "EU AI Act enforcement timeline (2026) creating clear regulatory catalyst. FinLang and EuConform are direct compliance tools. Strata Core is hiring for multi-agentic compliance. Formation is active."}, "vibe_coding_pipeline": {"signal_count": 5, "formation_strength": "strong", "eu_relevant": false, "thesis": "New category forming: AI-to-production pipelines that bridge vibe-coded prototypes to shippable software. Watch for: deployment, testing, and security tools purpose-built for AI-generated code."}, "post_quantum_crypto": {"signal_count": 4, "formation_strength": "moderate", "eu_relevant": true, "thesis": "Post-quantum crypto moving from research to products. HEVEC (homomorphic encryption + vector DB at scale) is a genuine infrastructure play. Converging with local-first movement."}, "systems_renaissance": {"signal_count": 6, "formation_strength": "moderate", "eu_relevant": false, "thesis": "Zig and Rust are the languages of new infrastructure. Thread-per-core + io_uring emerging as performance paradigm. These are production-grade components, not hobby projects."}, "self_hosted_infra": {"signal_count": 5, "formation_strength": "moderate", "eu_relevant": true, "thesis": "Self-hosted alternatives to cloud services at increasingly ambitious scope. OpenWorkers (500 pts) shows strong market pull for self-hosted edge compute."}, "ai_integrity": {"signal_count": 2, "formation_strength": "early", "eu_relevant": false, "thesis": "Nascent but high-potential: tools to verify human vs AI work. TalentLyt addresses real hiring pain. Category will grow as AI adoption increases."}}};
+
+// Domain display names
+const DOMAIN_LABELS = {
+  local_first_ai: "Local-First / Privacy AI",
+  ai_agent_infra: "AI Agent Infrastructure",
+  eu_compliance: "EU Regulatory Compliance",
+  vibe_coding: "Vibe Coding Pipeline",
+  vibe_coding_pipeline: "Vibe Coding Pipeline",
+  post_quantum_crypto: "Post-Quantum Crypto",
+  systems_renaissance: "Systems Programming (Rust/Zig)",
+  systems_infra: "Systems Infrastructure",
+  self_hosted_infra: "Self-Hosted Infrastructure",
+  ai_integrity: "AI Integrity / Anti-Fraud",
+  vertical_saas: "Vertical SaaS",
+  security_tools: "Security Tools",
+  privacy_dev_tools: "Privacy Dev Tools",
+  privacy_security: "Privacy & Security",
+  local_first_fintech: "Local-First Fintech",
+  local_first_business: "Local-First Business",
+  local_first_consumer: "Local-First Consumer",
+  founder_tools: "Founder Tools",
+  fintech_tools: "Fintech Tools",
+  devex: "Developer Experience",
+  data_infra: "Data Infrastructure",
+  hardware_oss: "Hardware OSS",
+  ai_hardware_replication: "AI Hardware Replication",
+  ai_creative_tools: "AI Creative Tools",
+  education: "Education",
+  consumer: "Consumer",
+  consumer_wellness: "Consumer Wellness",
+  market_intelligence: "Market Intelligence",
+  community_sentiment: "Community Sentiment",
+  crypto_infra: "Crypto Infrastructure",
+  industrial_ai: "Industrial AI",
+  healthtech: "HealthTech",
+  climate_tech: "Climate Tech",
+  dev_tools: "Dev Tools",
+  satire: "Satire",
+};
+
+const FORMATION_ORDER = { strong: 0, moderate: 1, low: 2, none: 3 };
+
+// State
+let activeFilter = "all";
+let strengthFilter = null;
+let euOnly = false;
+let searchTerm = "";
+
+// Count signals per domain
+function domainCounts() {
+  const counts = {};
+  DATA.signals.forEach(s => {
+    const d = s.problem_domain;
+    counts[d] = (counts[d] || 0) + 1;
+  });
+  return counts;
+}
+
+// Get filtered signals
+function getFiltered() {
+  return DATA.signals.filter(s => {
+    if (s.formation_relevance === "none") return false;
+    if (activeFilter !== "all" && s.problem_domain !== activeFilter) return false;
+    if (strengthFilter && s.formation_relevance !== strengthFilter) return false;
+    if (euOnly && !s.eu_relevant) return false;
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      const hay = (s.title + " " + (s.inferred_problem || "") + " " + (s.problem_domain || "")).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    const fa = FORMATION_ORDER[a.formation_relevance] ?? 3;
+    const fb = FORMATION_ORDER[b.formation_relevance] ?? 3;
+    if (fa !== fb) return fa - fb;
+    return (b.points || 0) - (a.points || 0);
+  });
+}
+
+// Render sidebar
+function renderSidebar() {
+  const counts = domainCounts();
+  const totalStrong = DATA.signals.filter(s => s.formation_relevance === "strong").length;
+  const totalMod = DATA.signals.filter(s => s.formation_relevance === "moderate").length;
+  const totalEU = DATA.signals.filter(s => s.eu_relevant).length;
+
+  // Group domains by formation strength from problem_domains
+  const domainsByStrength = {};
+  Object.entries(DATA.problem_domains).forEach(([key, val]) => {
+    const str = val.formation_strength;
+    if (!domainsByStrength[str]) domainsByStrength[str] = [];
+    domainsByStrength[str].push(key);
+  });
+
+  // Remaining domains not in problem_domains
+  const allDomains = [...new Set(DATA.signals.map(s => s.problem_domain))];
+  const coveredDomains = new Set(Object.keys(DATA.problem_domains));
+  const otherDomains = allDomains.filter(d => !coveredDomains.has(d) && d !== "satire");
+
+  let html = `<h1>HN Signal Dashboard</h1><div class="period">${DATA.meta.period}</div>`;
+
+  html += `<h2>Filter by Strength</h2>`;
+  html += `<button class="filter-btn ${!strengthFilter && activeFilter === 'all' && !euOnly ? 'active' : ''}" onclick="resetAll()">All Signals <span class="count">${DATA.signals.filter(s=>s.formation_relevance!=='none').length}</span></button>`;
+  html += `<button class="filter-btn ${strengthFilter==='strong'?'active':''}" onclick="setStrength('strong')"><span><span class="strength-dot dot-strong"></span>Strong</span><span class="count">${totalStrong}</span></button>`;
+  html += `<button class="filter-btn ${strengthFilter==='moderate'?'active':''}" onclick="setStrength('moderate')"><span><span class="strength-dot dot-moderate"></span>Moderate</span><span class="count">${totalMod}</span></button>`;
+  html += `<button class="filter-btn ${euOnly?'active':''}" onclick="toggleEU()"><span>🇪🇺 EU-Relevant</span><span class="count">${totalEU}</span></button>`;
+
+  html += `<h2>Problem Domains</h2>`;
+
+  // Key domains (from problem_domains)
+  const strengthOrder = ["very_strong", "strong", "moderate", "early"];
+  strengthOrder.forEach(str => {
+    if (!domainsByStrength[str]) return;
+    domainsByStrength[str].forEach(d => {
+      const label = DOMAIN_LABELS[d] || d;
+      const c = counts[d] || 0;
+      const dotClass = str === "very_strong" || str === "strong" ? "dot-strong" : str === "moderate" ? "dot-moderate" : "dot-low";
+      html += `<button class="filter-btn ${activeFilter===d?'active':''}" onclick="setDomain('${d}')"><span><span class="strength-dot ${dotClass}"></span>${label}</span><span class="count">${c}</span></button>`;
+    });
+  });
+
+  // Other domains
+  if (otherDomains.length > 0) {
+    html += `<h2>Other</h2>`;
+    otherDomains.sort((a,b) => (counts[b]||0) - (counts[a]||0)).forEach(d => {
+      const label = DOMAIN_LABELS[d] || d;
+      const c = counts[d] || 0;
+      if (c === 0) return;
+      html += `<button class="filter-btn ${activeFilter===d?'active':''}" onclick="setDomain('${d}')"><span>${label}</span><span class="count">${c}</span></button>`;
+    });
+  }
+
+  html += `<div class="stats">
+    <strong>Period Stats</strong><br>
+    Signals: <span>${DATA.meta.total_signals}</span><br>
+    Show HN: <span>${DATA.meta.show_hn}</span><br>
+    Hiring: <span>${DATA.meta.hiring_signals}</span><br>
+    Threads: <span>${DATA.meta.threads}</span><br>
+    Domains: <span>${Object.keys(DATA.problem_domains).length}</span>
+  </div>`;
+
+  document.getElementById("sidebar").innerHTML = html;
+}
+
+// Render main
+function renderMain() {
+  const signals = getFiltered();
+  const domainInfo = activeFilter !== "all" ? DATA.problem_domains[activeFilter] : null;
+  const domainLabel = DOMAIN_LABELS[activeFilter] || activeFilter;
+
+  let html = `<div class="main-header">
+    <h2>${activeFilter === "all" ? "All Signals" : domainLabel}</h2>
+    <div style="display:flex;gap:12px;align-items:center">
+      <span class="result-count">${signals.length} signal${signals.length!==1?'s':''}</span>
+      <input class="search-box" type="text" placeholder="Search signals…" value="${searchTerm}" oninput="setSearch(this.value)">
+    </div>
+  </div>`;
+
+  if (domainInfo) {
+    html += `<div class="domain-thesis"><strong>${domainLabel}</strong> — Formation: ${domainInfo.formation_strength.replace('_',' ')}${domainInfo.eu_relevant ? ' · 🇪🇺 EU-relevant' : ''}<br><br>${domainInfo.thesis}</div>`;
+  }
+
+  html += `<div class="cards">`;
+
+  signals.forEach(s => {
+    const fr = s.formation_relevance || "none";
+    const badges = [];
+    if (fr === "strong") badges.push(`<span class="badge badge-strong">STRONG</span>`);
+    if (fr === "moderate") badges.push(`<span class="badge badge-moderate">moderate</span>`);
+    if (fr === "low") badges.push(`<span class="badge badge-low">low</span>`);
+    if (s.eu_relevant) badges.push(`<span class="badge badge-eu">EU</span>`);
+    if (s.builder_present) badges.push(`<span class="badge badge-builder">builder</span>`);
+    if (s.type === "hiring") badges.push(`<span class="badge badge-hiring">hiring</span>`);
+    if (s.type === "ask_hn") badges.push(`<span class="badge badge-type">Ask HN</span>`);
+
+    const links = [];
+    if (s.hn_url) links.push(`<a href="${s.hn_url}" target="_blank"><span class="icon">📰</span> HN Post</a>`);
+    if (s.url) links.push(`<a href="${s.url}" target="_blank"><span class="icon">🔗</span> Website</a>`);
+    // If title contains a project name, try to construct a likely search link
+    const projectName = extractProjectName(s.title);
+    if (projectName && projectName.length > 2) {
+      links.push(`<a href="https://github.com/search?q=${encodeURIComponent(projectName)}&type=repositories" target="_blank"><span class="icon">🐙</span> GitHub Search</a>`);
+      links.push(`<a href="https://www.google.com/search?q=${encodeURIComponent(projectName + ' site')}" target="_blank"><span class="icon">🔍</span> Google</a>`);
+    }
+
+    const meta = [];
+    if (s.points) meta.push(`${s.points} pts`);
+    if (s.num_comments) meta.push(`${s.num_comments} comments`);
+    if (s.created_at) meta.push(s.created_at);
+    if (s.tech_stack) meta.push(s.tech_stack);
+    const metaStr = meta.length ? `<div style="font-size:11px;color:#484f58;margin-top:6px">${meta.join(' · ')}</div>` : '';
+
+    html += `<div class="card">
+      <div class="card-top">
+        <div class="card-title">${s.title}</div>
+        <div class="card-badges">${badges.join('')}</div>
+      </div>
+      ${s.inferred_problem ? `<div class="card-problem">${s.inferred_problem}</div>` : ''}
+      <div class="card-links">${links.join('')}</div>
+      ${metaStr}
+      <div class="card-domain">${DOMAIN_LABELS[s.problem_domain] || s.problem_domain}</div>
+    </div>`;
+  });
+
+  html += `</div>`;
+  document.getElementById("main").innerHTML = html;
+}
+
+function extractProjectName(title) {
+  // Try to pull "ProjectName" from "Show HN: ProjectName – description" or "ProjectName – description"
+  let t = title.replace(/^Show HN:\s*/i, '').replace(/^Ask HN:\s*/i, '');
+  const dashMatch = t.match(/^([^–—\-:]+)/);
+  if (dashMatch) {
+    let name = dashMatch[1].trim();
+    // Remove common prefixes
+    name = name.replace(/^(I built|We built|I made|I created|A)\s+/i, '');
+    // If it's short enough to be a project name
+    if (name.length <= 40 && name.split(' ').length <= 5) return name;
+  }
+  return null;
+}
+
+function setDomain(d) { activeFilter = d; strengthFilter = null; render(); }
+function setStrength(s) { strengthFilter = strengthFilter === s ? null : s; activeFilter = "all"; render(); }
+function toggleEU() { euOnly = !euOnly; render(); }
+function resetAll() { activeFilter = "all"; strengthFilter = null; euOnly = false; searchTerm = ""; render(); }
+function setSearch(v) { searchTerm = v; render(); }
+
+function render() { renderSidebar(); renderMain(); }
+render();
+</script>
+</body>
+</html>
